@@ -22,6 +22,14 @@ const generateMockHistory = (days: number): DailyStat[] => {
 // Initialize with some data if empty
 const initData = () => {
   if (!localStorage.getItem(USERS_KEY)) {
+    const ownerUser: User = {
+      id: 'owner-1',
+      email: 'owner@shortai.com',
+      name: 'Chủ Hệ Thống',
+      role: UserRole.OWNER,
+      password: 'owner123',
+      createdAt: new Date().toISOString()
+    };
     const adminUser: User = {
       id: 'admin-1',
       email: 'admin@shortai.com',
@@ -38,7 +46,7 @@ const initData = () => {
       password: 'user123',
       createdAt: new Date().toISOString()
     };
-    localStorage.setItem(USERS_KEY, JSON.stringify([adminUser, demoUser]));
+    localStorage.setItem(USERS_KEY, JSON.stringify([ownerUser, adminUser, demoUser]));
   }
 
   if (!localStorage.getItem(LINKS_KEY)) {
@@ -113,6 +121,25 @@ export const register = async (email: string, password: string, name: string): P
   return userWithoutPass;
 };
 
+// Admin/Owner create user directly
+export const adminCreateUser = async (email: string, password: string, name: string, role: UserRole): Promise<User> => {
+  const users: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+  if (users.find(u => u.email === email)) throw new Error("Email đã tồn tại.");
+
+  const newUser: User = {
+    id: `user-${Date.now()}`,
+    email,
+    password,
+    name,
+    role,
+    createdAt: new Date().toISOString()
+  };
+
+  users.push(newUser);
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  return newUser;
+};
+
 export const logout = () => {
   localStorage.removeItem(SESSION_KEY);
 };
@@ -136,6 +163,31 @@ export const updateUserRole = (userId: string, newRole: UserRole) => {
     users[index].role = newRole;
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
   }
+};
+
+export const updateFullUser = (userId: string, updates: { name: string, email: string, role: UserRole, password?: string }) => {
+    const users: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    const index = users.findIndex(u => u.id === userId);
+    
+    if (index === -1) throw new Error("User not found");
+
+    // Check unique email if changed
+    if (users[index].email !== updates.email) {
+        if (users.find(u => u.email === updates.email)) {
+            throw new Error("Email này đã được sử dụng bởi người khác.");
+        }
+    }
+
+    users[index].name = updates.name;
+    users[index].email = updates.email;
+    users[index].role = updates.role;
+    
+    // Only update password if provided and not empty
+    if (updates.password && updates.password.trim() !== "") {
+        users[index].password = updates.password;
+    }
+
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
 export const getAllUsers = (): User[] => {
@@ -249,6 +301,25 @@ export const updateLinkExpiry = (linkId: string, expiresAt: string | null) => {
     localStorage.setItem(LINKS_KEY, JSON.stringify(links));
   }
 }
+
+export const updateLink = (linkId: string, newSlug: string, newOriginalUrl: string) => {
+  const links = getAllLinks();
+  const index = links.findIndex(l => l.id === linkId);
+  if (index === -1) {
+    throw new Error("Không tìm thấy liên kết.");
+  }
+  
+  // Check collision if slug changed
+  if (links[index].slug !== newSlug) {
+      if (links.some(l => l.slug === newSlug)) {
+          throw new Error(`Slug '${newSlug}' đã tồn tại.`);
+      }
+  }
+
+  links[index].slug = newSlug;
+  links[index].originalUrl = newOriginalUrl;
+  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+};
 
 export const deleteLink = (linkId: string) => {
   const links = getAllLinks();
