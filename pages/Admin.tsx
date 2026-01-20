@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { User, ShortLink, UserRole } from '../types';
 import { 
     getAllUsers, getAllLinks, deleteUser, deleteLink, updateLink, 
-    updateFullUser, adminCreateUser 
+    updateFullUser, adminCreateUser, getFullDatabase, importDatabase 
 } from '../services/mockBackend';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AdminProps {
   currentUser: User;
@@ -13,9 +14,10 @@ const USERS_PER_PAGE = 10;
 const LINKS_PER_PAGE = 20;
 
 const Admin: React.FC<AdminProps> = ({ currentUser }) => {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [links, setLinks] = useState<ShortLink[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'links'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'links' | 'database'>('users');
   const [showCreateUser, setShowCreateUser] = useState(false);
 
   // Search State
@@ -36,8 +38,13 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
   // Create User State
   const [newUserForm, setNewUserForm] = useState({ name: '', email: '', password: '', role: UserRole.USER });
 
+  // Database Import
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const isOwner = currentUser.role === UserRole.OWNER;
   const isAdmin = currentUser.role === UserRole.ADMIN;
+  // Allow Admins to see Database tab as well for testing purposes
+  const canManageDB = isOwner || isAdmin;
 
   useEffect(() => {
     refreshData();
@@ -52,6 +59,41 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
     setUsers(getAllUsers());
     setLinks(getAllLinks());
   };
+
+  // --- Database Export/Import ---
+  const handleExportDB = () => {
+    const data = getFullDatabase();
+    const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
+      JSON.stringify(data, null, 2)
+    )}`;
+    const link = document.createElement("a");
+    link.href = jsonString;
+    link.download = `shortai_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+  };
+
+  const handleImportDB = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        if (window.confirm("CẢNH BÁO: Dữ liệu hiện tại sẽ bị ghi đè. Bạn có chắc chắn?")) {
+          importDatabase(json);
+          alert(t('admin.db.import.success'));
+          window.location.reload();
+        }
+      } catch (error) {
+        alert(t('admin.db.import.error'));
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
 
   // --- Create User Logic ---
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -96,7 +138,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
   };
 
   const saveEditingUser = (userId: string) => {
-      if (!window.confirm("Bạn có chắc chắn muốn lưu các thay đổi cho người dùng này?")) return;
+      if (!window.confirm(t('admin.confirm.save_user'))) return;
       try {
           updateFullUser(userId, {
               name: editUserForm.name,
@@ -104,7 +146,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
               role: editUserForm.role,
               password: editUserForm.password // Only processed if not empty and isOwner in backend
           });
-          if (isOwner) alert("Cập nhật thông tin người dùng thành công!");
+          if (isOwner) alert(t('common.success'));
           setEditingUserId(null);
           refreshData();
       } catch (e: any) {
@@ -113,16 +155,16 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
   };
 
   const handleDeleteUser = (targetUser: User) => {
-    if (window.confirm(`CẢNH BÁO QUAN TRỌNG:\nBạn sắp xóa người dùng "${targetUser.name}" và TOÀN BỘ link của họ.\nHành động này không thể hoàn tác.\n\nBạn có chắc chắn muốn tiếp tục?`)) {
+    if (window.confirm(t('admin.confirm.delete_user'))) {
       deleteUser(targetUser.id);
-      if (isOwner) alert("Đã xóa người dùng thành công!");
+      if (isOwner) alert(t('common.success'));
       refreshData();
     }
   };
 
   // --- Link Logic ---
   const handleDeleteLink = (id: string) => {
-    if (window.confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa link này khỏi hệ thống không?")) {
+    if (window.confirm(t('admin.confirm.delete_link'))) {
       deleteLink(id);
       refreshData();
     }
@@ -144,7 +186,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
   };
 
   const saveEditingLink = (linkId: string) => {
-    if (!window.confirm("Bạn có chắc muốn lưu thay đổi này?")) return;
+    if (!window.confirm(t('admin.confirm.save_user'))) return; // Reusing save text
 
     try {
         updateLink(linkId, editLinkForm.slug, editLinkForm.originalUrl);
@@ -184,10 +226,9 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trang Quản Trị</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.title')}</h1>
           <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-             Xin chào, <span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUser.role}</span> {currentUser.name}.
-             Quản lý người dùng và hệ thống.
+             {t('admin.subtitle')}
           </p>
         </div>
         {/* Create User Button for Owner/Admin */}
@@ -197,7 +238,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                     onClick={() => setShowCreateUser(!showCreateUser)}
                     className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none transition-colors"
                 >
-                    {showCreateUser ? 'Hủy tạo mới' : 'Thêm người dùng'}
+                    {showCreateUser ? t('admin.btn.cancel') : t('admin.btn.add_user')}
                 </button>
             </div>
         )}
@@ -209,37 +250,88 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
             onClick={() => setActiveTab('users')}
             className={`${activeTab === 'users' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
-            Người dùng ({users.length})
+            {t('admin.tab.users')} ({users.length})
           </button>
           <button
             onClick={() => setActiveTab('links')}
             className={`${activeTab === 'links' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
-            Tất cả Links ({links.length})
+            {t('admin.tab.links')} ({links.length})
           </button>
+           {canManageDB && (
+            <button
+                onClick={() => setActiveTab('database')}
+                className={`${activeTab === 'database' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+                {t('admin.tab.database')}
+            </button>
+           )}
         </nav>
       </div>
 
       <div className="mt-8 flex flex-col">
+        {/* DATABASE TAB */}
+        {activeTab === 'database' && canManageDB && (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('admin.db.export.title')}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('admin.db.export.desc')}</p>
+                    <button 
+                        onClick={handleExportDB}
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+                    >
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                         </svg>
+                         {t('admin.db.export.btn')}
+                    </button>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('admin.db.import.title')}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('admin.db.import.desc')}</p>
+                    <div className="flex items-center">
+                        <input 
+                            type="file" 
+                            accept=".json"
+                            ref={fileInputRef}
+                            onChange={handleImportDB}
+                            className="hidden" 
+                            id="db-import"
+                        />
+                        <label 
+                            htmlFor="db-import"
+                            className="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+                        >
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                             </svg>
+                             {t('admin.db.import.btn')}
+                        </label>
+                    </div>
+                </div>
+             </div>
+        )}
+
         {/* Create User Form */}
         {showCreateUser && activeTab === 'users' && (
             <div className="mb-8 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
                 <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Tạo tài khoản mới</h3>
                 <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tên hiển thị</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.form.name')}</label>
                         <input type="text" required className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value={newUserForm.name} onChange={e => setNewUserForm({...newUserForm, name: e.target.value})} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.table.email')}</label>
                         <input type="email" required className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value={newUserForm.email} onChange={e => setNewUserForm({...newUserForm, email: e.target.value})} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mật khẩu</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.table.password')}</label>
                         <input type="password" required className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Vai trò</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.form.role')}</label>
                         <select className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value={newUserForm.role} onChange={e => setNewUserForm({...newUserForm, role: e.target.value as UserRole})}>
                             <option value={UserRole.USER}>User</option>
                             <option value={UserRole.ADMIN}>Admin</option>
@@ -247,7 +339,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                         </select>
                     </div>
                     <div className="md:col-span-2 flex justify-end">
-                        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Xác nhận tạo</button>
+                        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">{t('common.save')}</button>
                     </div>
                 </form>
             </div>
@@ -258,7 +350,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
             <div className="mb-4">
                 <input 
                     type="text"
-                    placeholder="Tìm kiếm theo Slug hoặc URL..."
+                    placeholder={t('common.search')} 
                     className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
                     value={linkSearchTerm}
                     onChange={(e) => setLinkSearchTerm(e.target.value)}
@@ -276,10 +368,10 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                 <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Tên</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Email</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Vai trò</th>
-                      {isOwner && <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Mật khẩu</th>}
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">{t('admin.table.name')}</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">{t('admin.table.email')}</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">{t('admin.table.role')}</th>
+                      {isOwner && <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">{t('admin.table.password')}</th>}
                       <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span className="sr-only">Actions</span>
                       </th>
@@ -310,7 +402,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                                         <input 
                                             type="password" 
                                             className="w-full border border-gray-300 dark:border-gray-600 p-1 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" 
-                                            placeholder="Để trống nếu không đổi"
+                                            placeholder={t('admin.form.pass_placeholder')}
                                             value={editUserForm.password}
                                             onChange={e => setEditUserForm({...editUserForm, password: e.target.value})}
                                         />
@@ -336,16 +428,16 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6 space-x-2">
                           {isEditing ? (
                               <>
-                                <button onClick={() => saveEditingUser(user.id)} className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">Lưu</button>
-                                <button onClick={cancelEditingUser} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">Hủy</button>
+                                <button onClick={() => saveEditingUser(user.id)} className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">{t('common.save')}</button>
+                                <button onClick={cancelEditingUser} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">{t('common.cancel')}</button>
                               </>
                           ) : (
                               <>
                                 {canEditUser(user) && (
-                                    <button onClick={() => startEditingUser(user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">Sửa</button>
+                                    <button onClick={() => startEditingUser(user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">{t('common.edit')}</button>
                                 )}
                                 {canDeleteUser(user) && (
-                                    <button onClick={() => handleDeleteUser(user)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">Xóa</button>
+                                    <button onClick={() => handleDeleteUser(user)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">{t('common.delete')}</button>
                                 )}
                               </>
                           )}
@@ -397,7 +489,7 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                     <tr>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 w-1/6">Slug</th>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 w-1/3">Original URL</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 w-1/6">Người tạo</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 w-1/6">{t('admin.table.creator')}</th>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 w-1/12">Clicks</th>
                       <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span className="sr-only">Actions</span>
@@ -436,20 +528,20 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
                         )}
                         
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
-                          {link.creatorId === 'guest' ? 'Khách' : (users.find(u => u.id === link.creatorId)?.name || 'Unknown')}
+                          {link.creatorId === 'guest' ? 'Guest' : (users.find(u => u.id === link.creatorId)?.name || 'Unknown')}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">{link.clicks}</td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6 space-x-2">
                            {isEditing ? (
                                <>
-                                <button onClick={() => saveEditingLink(link.id)} className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 font-medium">Lưu</button>
-                                <button onClick={cancelEditingLink} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">Hủy</button>
-                               </>
+                                <button onClick={() => saveEditingLink(link.id)} className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 font-medium">{t('common.save')}</button>
+                                <button onClick={cancelEditingLink} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">{t('common.cancel')}</button>
+                                </>
                            ) : (
                                <>
-                                <button onClick={() => startEditingLink(link)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">Sửa</button>
-                                <button onClick={() => handleSimulateVisit(link.slug)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">Visit</button>
-                                <button onClick={() => handleDeleteLink(link.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">Xóa</button>
+                                <button onClick={() => startEditingLink(link)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">{t('common.edit')}</button>
+                                <button onClick={() => handleSimulateVisit(link.slug)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">{t('common.visit')}</button>
+                                <button onClick={() => handleDeleteLink(link.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">{t('common.delete')}</button>
                                </>
                            )}
                         </td>

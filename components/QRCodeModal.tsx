@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface QRCodeModalProps {
   originalUrl: string;
@@ -8,6 +9,7 @@ interface QRCodeModalProps {
 }
 
 const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose }) => {
+  const { t } = useLanguage();
   const [dataUrl, setDataUrl] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +47,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
         ctx.font = 'bold 24px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('ShortAI', width / 2, 40);
+        ctx.fillText('RLinkVN', width / 2, 40);
 
         // 5. Draw QR Code Image
         const qrImage = new Image();
@@ -62,7 +64,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
         // 6. Draw Footer Label
         ctx.fillStyle = '#6B7280'; // Gray-500
         ctx.font = '12px Inter, sans-serif';
-        ctx.fillText('Quét để truy cập:', width / 2, 295);
+        ctx.fillText(t('modal.qr.scan'), width / 2, 295);
 
         // 7. Draw Original URL (Footer)
         ctx.fillStyle = '#111827'; // Gray-900
@@ -85,17 +87,17 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
     };
 
     generateCombinedImage();
-  }, [originalUrl]);
+  }, [originalUrl, t]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} aria-hidden="true"></div>
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full sm:p-6 border border-gray-200 dark:border-gray-700">
+        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full sm:p-6 border border-gray-200 dark:border-gray-700 animate-scale-in">
           <div className="text-center">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
-              Mã QR cho /{slug}
+              {t('modal.qr.title')} /{slug}
             </h3>
             <div className="mt-4 flex justify-center bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
               {dataUrl ? (
@@ -107,7 +109,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
               )}
             </div>
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 px-2">
-                Hình ảnh tải xuống sẽ bao gồm tên website và link gốc.
+                {t('modal.qr.desc')}
             </p>
           </div>
           <div className="mt-5 sm:mt-6 grid grid-cols-2 gap-3">
@@ -116,14 +118,14 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
               className="w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none sm:text-sm"
               onClick={onClose}
             >
-              Đóng
+              {t('common.close')}
             </button>
             <a
               href={dataUrl}
-              download={`ShortAI-${slug}.png`}
+              download={`RLinkVN-${slug}.png`}
               className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:text-sm ${loading ? 'pointer-events-none opacity-50' : ''}`}
             >
-              Tải xuống
+              {t('common.download')}
             </a>
           </div>
         </div>

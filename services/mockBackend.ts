@@ -24,7 +24,7 @@ const initData = () => {
   if (!localStorage.getItem(USERS_KEY)) {
     const ownerUser: User = {
       id: 'owner-1',
-      email: 'owner@shortai.com',
+      email: 'owner@rlink.id.vn',
       name: 'Chủ Hệ Thống',
       role: UserRole.OWNER,
       password: 'owner123',
@@ -32,7 +32,7 @@ const initData = () => {
     };
     const adminUser: User = {
       id: 'admin-1',
-      email: 'admin@shortai.com',
+      email: 'admin@rlink.id.vn',
       name: 'Quản trị viên',
       role: UserRole.ADMIN,
       password: 'admin', 
@@ -40,7 +40,7 @@ const initData = () => {
     };
     const demoUser: User = {
       id: 'user-1',
-      email: 'user@shortai.com',
+      email: 'user@rlink.id.vn',
       name: 'Nguyễn Văn A',
       role: UserRole.USER,
       password: 'user123',
@@ -368,4 +368,20 @@ export const setLanguage = (lang: string) => {
     const settings = getLanguageSettings();
     settings.currentLang = lang;
     localStorage.setItem(LANG_KEY, JSON.stringify(settings));
+};
+
+// --- DB Import/Export Services ---
+
+export const getFullDatabase = () => {
+  const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+  const links = JSON.parse(localStorage.getItem(LINKS_KEY) || '[]');
+  return { users, links };
+};
+
+export const importDatabase = (data: { users: User[], links: ShortLink[] }) => {
+  if (!data || !Array.isArray(data.users) || !Array.isArray(data.links)) {
+    throw new Error("Cấu trúc file không hợp lệ.");
+  }
+  localStorage.setItem(USERS_KEY, JSON.stringify(data.users));
+  localStorage.setItem(LINKS_KEY, JSON.stringify(data.links));
 };

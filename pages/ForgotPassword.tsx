@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { recoverPassword } from '../services/mockBackend';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const ForgotPassword = () => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -22,9 +24,9 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">Quên mật khẩu</h2>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">{t('auth.forgot.title')}</h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Nhập email để lấy lại mật khẩu
+          {t('auth.forgot.desc')}
         </p>
       </div>
 
@@ -34,12 +36,12 @@ const ForgotPassword = () => {
              <div className="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
               <div className="flex">
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-green-800 dark:text-green-300">Đã gửi yêu cầu</h3>
+                  <h3 className="text-sm font-medium text-green-800 dark:text-green-300">{t('auth.forgot.success.title')}</h3>
                   <div className="mt-2 text-sm text-green-700 dark:text-green-400">
-                    <p>Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu cho bạn.</p>
+                    <p>{t('auth.forgot.success.desc')}</p>
                   </div>
                   <div className="mt-4">
-                     <Link to="/login" className="text-sm font-medium text-green-800 dark:text-green-300 hover:text-green-900 dark:hover:text-green-200"> Quay lại đăng nhập </Link>
+                     <Link to="/login" className="text-sm font-medium text-green-800 dark:text-green-300 hover:text-green-900 dark:hover:text-green-200"> {t('auth.forgot.back_login')} </Link>
                   </div>
                 </div>
               </div>
@@ -48,7 +50,7 @@ const ForgotPassword = () => {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email
+                  {t('auth.email')}
                 </label>
                 <div className="mt-1">
                   <input
@@ -74,7 +76,7 @@ const ForgotPassword = () => {
                   disabled={status === 'loading'}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 transition-colors"
                 >
-                  {status === 'loading' ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                  {status === 'loading' ? t('common.processing') : t('auth.forgot.btn')}
                 </button>
               </div>
             </form>
@@ -83,7 +85,7 @@ const ForgotPassword = () => {
            {status !== 'success' && (
              <div className="mt-6 text-center">
                 <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 text-sm">
-                   Quay lại đăng nhập
+                   {t('auth.forgot.back_login')}
                 </Link>
              </div>
            )}

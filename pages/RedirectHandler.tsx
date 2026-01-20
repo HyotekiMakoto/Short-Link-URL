@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getLinkBySlug, incrementClick } from '../services/mockBackend';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const RedirectHandler: React.FC = () => {
+  const { t } = useLanguage();
   const { slug } = useParams<{ slug: string }>();
   const [status, setStatus] = useState<'checking' | 'redirecting' | 'expired' | 'not-found'>('checking');
   const [targetUrl, setTargetUrl] = useState('');
@@ -46,10 +48,10 @@ const RedirectHandler: React.FC = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
         <p className="text-gray-600 dark:text-gray-300 font-medium">
-            {status === 'checking' ? 'Đang kiểm tra liên kết...' : 'Đang chuyển hướng...'}
+            {status === 'checking' ? t('redirect.checking') : t('redirect.redirecting')}
         </p>
         {status === 'redirecting' && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Nếu trình duyệt không tự chuyển, <a href={targetUrl} className="text-indigo-600 dark:text-indigo-400 underline">bấm vào đây</a>.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t('redirect.manual')} <a href={targetUrl} className="text-indigo-600 dark:text-indigo-400 underline">here</a>.</p>
         )}
       </div>
     );
@@ -64,16 +66,16 @@ const RedirectHandler: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Liên kết đã hết hạn</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('redirect.expired.title')}</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            Đường dẫn rút gọn bạn truy cập đã hết thời hạn sử dụng và không còn khả dụng. Vui lòng liên hệ với người tạo link hoặc tạo một link mới.
+            {t('redirect.expired.desc')}
           </p>
           <div className="flex flex-col space-y-3">
              <Link to="/" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-               Quay về trang chủ
+               {t('redirect.btn.home')}
              </Link>
              <Link to="/login" className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-               Đăng nhập
+               {t('nav.login')}
              </Link>
           </div>
         </div>
@@ -84,11 +86,11 @@ const RedirectHandler: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 transition-colors duration-200">
         <div className="text-center">
-            <h1 className="text-6xl font-bold text-gray-900 dark:text-white">404</h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 mt-4">Không tìm thấy liên kết rút gọn này.</p>
+            <h1 className="text-6xl font-bold text-gray-900 dark:text-white">{t('redirect.404.title')}</h1>
+            <p className="text-xl text-gray-600 dark:text-gray-400 mt-4">{t('redirect.404.desc')}</p>
             <div className="mt-8">
                 <Link to="/" className="text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-500 dark:hover:text-indigo-300">
-                    &larr; Quay về trang chủ
+                    &larr; {t('redirect.btn.home')}
                 </Link>
             </div>
         </div>

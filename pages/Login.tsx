@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { login } from '../services/mockBackend';
 import { User } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginProps {
   setUser: (user: User) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ setUser }) => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,11 +31,11 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
   };
 
   return (
-    <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-[#0B1120] dark:via-[#1e1b4b] dark:to-black transition-colors duration-200">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">Đăng nhập</h2>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">{t('auth.login.title')}</h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Hoặc <Link to="/register" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300">đăng ký tài khoản mới</Link>
+          {t('auth.or')} <Link to="/register" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300">{t('auth.login.or_register')}</Link>
         </p>
       </div>
 
@@ -41,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
         <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100 dark:border-gray-700 transition-colors duration-200">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.email')}</label>
               <div className="mt-1">
                 <input
                   id="email"
@@ -57,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mật khẩu</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.password')}</label>
               <div className="mt-1">
                 <input
                   id="password"
@@ -75,7 +77,7 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
             <div className="flex items-center justify-between">
               <div className="text-sm">
                 <Link to="/forgot-password" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300">
-                  Quên mật khẩu?
+                  {t('auth.forgot.title')}?
                 </Link>
               </div>
             </div>
@@ -88,7 +90,7 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
                 disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 transition-colors"
               >
-                {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+                {loading ? t('common.processing') : t('auth.login.btn')}
               </button>
             </div>
           </form>
@@ -99,16 +101,16 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
                 <div className="w-full border-t border-gray-300 dark:border-gray-600" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Tài khoản Demo</span>
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">{t('auth.demo_account')}</span>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
                <div className="text-xs text-center p-2 bg-gray-50 dark:bg-gray-700 dark:text-gray-300 rounded">
-                 <strong>Admin:</strong> admin@shortai.com / admin
+                 <strong>Admin:</strong> admin@rlink.id.vn / admin
                </div>
                <div className="text-xs text-center p-2 bg-gray-50 dark:bg-gray-700 dark:text-gray-300 rounded">
-                 <strong>User:</strong> user@shortai.com / user123
+                 <strong>User:</strong> user@rlink.id.vn / user123
                </div>
             </div>
           </div>
