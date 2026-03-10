@@ -89,7 +89,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, setUser }) => {
             <Link to="/" className="flex-shrink-0 flex items-center gap-1" onClick={() => setIsOpen(false)}>
               <span className="text-2xl font-bold">
                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">RLink</span>
-                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-red-300 dark:to-red-400">VN</span>
+                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-red-300 dark:to-red-400"></span>
               </span>
             </Link>
             {/* Desktop Menu Links */}

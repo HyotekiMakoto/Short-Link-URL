@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, ShortLink, DailyStat } from '../types';
 import { getLinksByUser, deleteLink, incrementClick, updateLinkExpiry, getLinkById } from '../services/mockBackend';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Treemap } from 'recharts';
 import { Link } from 'react-router-dom';
 import QRCodeModal from '../components/QRCodeModal';
 import BulkCreateModal from '../components/BulkCreateModal';
@@ -120,6 +120,50 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     return data.sort((a, b) => a.date.localeCompare(b.date));
   };
 
+  const getCountryData = (link: ShortLink) => {
+    if (!link.countries || link.countries.length === 0) return [];
+    return link.countries.map(c => ({
+      name: c.country,
+      size: c.count
+    }));
+  };
+
+  const COLORS = ['#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c', '#d0ed57', '#ffc658'];
+
+  const CustomizedContent = (props: any) => {
+    const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
+    return (
+      <g>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          style={{
+            fill: depth < 2 ? colors[Math.floor((index / root.children.length) * 6)] : '#ffffff00',
+            stroke: '#fff',
+            strokeWidth: 2 / (depth + 1e-10),
+            strokeOpacity: 1 / (depth + 1e-10),
+          }}
+        />
+        {
+          width > 30 && height > 30 ?
+          <text
+            x={x + width / 2}
+            y={y + height / 2}
+            textAnchor="middle"
+            fill="#fff"
+            fontSize={14}
+            dominantBaseline="middle"
+          >
+            {name}
+          </text>
+          : null
+        }
+      </g>
+    );
+  };
+
   const isExpired = (dateStr?: string | null) => {
     if (!dateStr) return false;
     return new Date(dateStr) < new Date();
@@ -235,29 +279,62 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
           </div>
 
-          <div className="h-72 w-full">
-            {isGraphReady ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={getChartData(selectedLink)}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#4B5563" opacity={0.3} />
-                  <XAxis dataKey="date" tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
-                  <YAxis tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
-                    itemStyle={{ color: '#E5E7EB' }}
-                    labelStyle={{ color: '#9CA3AF' }}
-                  />
-                  <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} activeDot={{ r: 8 }} name="Clicks" />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-               <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
-                  {t('dash.chart.loading')}
-               </div>
-            )}
-          </div>
-          <div className="mt-4 text-center text-xs text-gray-400">
-             {t('dash.chart.axis')}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-72 w-full">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">{t('dash.chart.axis')}</h3>
+              {isGraphReady ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={getChartData(selectedLink)}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#4B5563" opacity={0.3} />
+                    <XAxis dataKey="date" tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
+                    <YAxis tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
+                      itemStyle={{ color: '#E5E7EB' }}
+                      labelStyle={{ color: '#9CA3AF' }}
+                    />
+                    <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} activeDot={{ r: 8 }} name="Clicks" />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                 <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
+                    {t('dash.chart.loading')}
+                 </div>
+              )}
+            </div>
+
+            <div className="h-72 w-full">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">{t('dash.chart.heatmap')}</h3>
+              {isGraphReady ? (
+                getCountryData(selectedLink).length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Treemap
+                      data={getCountryData(selectedLink)}
+                      dataKey="size"
+                      aspectRatio={4 / 3}
+                      stroke="#fff"
+                      fill="#8884d8"
+                      content={<CustomizedContent colors={COLORS} />}
+                    >
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
+                        itemStyle={{ color: '#E5E7EB' }}
+                        labelStyle={{ color: '#9CA3AF' }}
+                        formatter={(value: number, name: string) => [value, name]}
+                      />
+                    </Treemap>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
+                    Chưa có dữ liệu quốc gia
+                  </div>
+                )
+              ) : (
+                 <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
+                    {t('dash.chart.loading')}
+                 </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -302,7 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   onClick={() => setSelectedLink(link)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-indigo-600 dark:text-indigo-400 font-medium">rlink.id.vn/{link.slug}</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-medium">rlnk.id.vn/{link.slug}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-xs" title={link.originalUrl}>{link.originalUrl}</div>

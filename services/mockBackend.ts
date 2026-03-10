@@ -19,12 +19,20 @@ const generateMockHistory = (days: number): DailyStat[] => {
   return history;
 };
 
+const generateMockCountries = (): { country: string, count: number }[] => {
+  const countries = ['VN', 'US', 'JP', 'KR', 'SG', 'TH'];
+  return countries.map(c => ({
+    country: c,
+    count: Math.floor(Math.random() * 50)
+  })).sort((a, b) => b.count - a.count);
+};
+
 // Initialize with some data if empty
 const initData = () => {
   if (!localStorage.getItem(USERS_KEY)) {
     const ownerUser: User = {
       id: 'owner-1',
-      email: 'owner@rlink.id.vn',
+      email: 'owner@rlnk.id.vn',
       name: 'Chủ Hệ Thống',
       role: UserRole.OWNER,
       password: 'owner123',
@@ -32,7 +40,7 @@ const initData = () => {
     };
     const adminUser: User = {
       id: 'admin-1',
-      email: 'admin@rlink.id.vn',
+      email: 'admin@rlnk.id.vn',
       name: 'Quản trị viên',
       role: UserRole.ADMIN,
       password: 'admin', 
@@ -40,7 +48,7 @@ const initData = () => {
     };
     const demoUser: User = {
       id: 'user-1',
-      email: 'user@rlink.id.vn',
+      email: 'user@rlnk.id.vn',
       name: 'Nguyễn Văn A',
       role: UserRole.USER,
       password: 'user123',
@@ -59,7 +67,8 @@ const initData = () => {
         clicks: 42,
         createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
         lastClickedAt: new Date().toISOString(),
-        history: generateMockHistory(7)
+        history: generateMockHistory(7),
+        countries: generateMockCountries()
       },
       {
         id: 'link-2',
@@ -69,7 +78,8 @@ const initData = () => {
         clicks: 128,
         createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
         lastClickedAt: new Date().toISOString(),
-        history: generateMockHistory(10)
+        history: generateMockHistory(10),
+        countries: generateMockCountries()
       }
     ];
     localStorage.setItem(LINKS_KEY, JSON.stringify(demoLinks));
@@ -261,7 +271,8 @@ export const createShortLink = async (originalUrl: string, slug: string, creator
     clicks: 0,
     createdAt: new Date().toISOString(),
     expiresAt: expiresAt || null,
-    history: []
+    history: [],
+    countries: []
   };
 
   links.push(newLink);
@@ -352,6 +363,17 @@ export const incrementClick = (linkId: string) => {
       link.history[todayStatIndex].count += 1;
     } else {
       link.history.push({ date: today, count: 1 });
+    }
+
+    // Update Country Stat (Mock random country for demo)
+    const countriesList = ['VN', 'US', 'JP', 'KR', 'SG', 'TH'];
+    const randomCountry = countriesList[Math.floor(Math.random() * countriesList.length)];
+    if (!link.countries) link.countries = [];
+    const countryIndex = link.countries.findIndex(c => c.country === randomCountry);
+    if (countryIndex >= 0) {
+      link.countries[countryIndex].count += 1;
+    } else {
+      link.countries.push({ country: randomCountry, count: 1 });
     }
 
     localStorage.setItem(LINKS_KEY, JSON.stringify(links));
