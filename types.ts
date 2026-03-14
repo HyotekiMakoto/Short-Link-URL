@@ -18,6 +18,11 @@ export interface DailyStat {
   count: number;
 }
 
+export interface CountryStat {
+  country: string;
+  count: number;
+}
+
 export interface ShortLink {
   id: string;
   originalUrl: string;
@@ -28,6 +33,7 @@ export interface ShortLink {
   lastClickedAt?: string;
   expiresAt?: string | null; // ISO string
   history?: DailyStat[];
+  countries?: CountryStat[];
 }
 
 export interface AuthState {
