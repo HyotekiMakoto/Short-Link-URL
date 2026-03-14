@@ -47,7 +47,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
         ctx.font = 'bold 24px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('RLinkVN', width / 2, 40);
+        ctx.fillText('RLink', width / 2, 40);
 
         // 5. Draw QR Code Image
         const qrImage = new Image();
@@ -122,7 +122,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ originalUrl, slug, onClose })
             </button>
             <a
               href={dataUrl}
-              download={`RLinkVN-${slug}.png`}
+              download={`RLink-${slug}.png`}
               className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:text-sm ${loading ? 'pointer-events-none opacity-50' : ''}`}
             >
               {t('common.download')}

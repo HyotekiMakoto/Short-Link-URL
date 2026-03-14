@@ -32,6 +32,7 @@ export interface ShortLink {
   createdAt: string;
   lastClickedAt?: string;
   expiresAt?: string | null; // ISO string
+  password?: string | null; // Optional password for the link
   history?: DailyStat[];
   countries?: CountryStat[];
 }

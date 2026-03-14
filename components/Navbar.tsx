@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { User, UserRole } from '../types';
 import { logout } from '../services/mockBackend';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -55,12 +56,44 @@ const Navbar: React.FC<NavbarProps> = ({ user, setUser }) => {
   };
 
   const handleLogout = () => {
-    if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      logout();
-      setUser(null);
-      navigate('/login');
-      setIsOpen(false);
-    }
+    toast((tToast) => (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {language === 'vi' ? 'Bạn có chắc chắn muốn đăng xuất?' : 'Are you sure you want to logout?'}
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => toast.dismiss(tToast.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            {language === 'vi' ? 'Hủy' : 'Cancel'}
+          </button>
+          <button
+            onClick={() => {
+              confirmLogout();
+              toast.dismiss(tToast.id);
+            }}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+          >
+            {language === 'vi' ? 'Đăng xuất' : 'Logout'}
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: document.documentElement.classList.contains('dark') ? '#374151' : '#fff',
+        color: document.documentElement.classList.contains('dark') ? '#fff' : '#111827',
+      }
+    });
+  };
+
+  const confirmLogout = () => {
+    logout();
+    setUser(null);
+    navigate('/login');
+    setIsOpen(false);
   };
 
   const isActive = (path: string) => location.pathname === path;

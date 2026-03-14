@@ -5,6 +5,7 @@ import {
     updateFullUser, adminCreateUser, getFullDatabase, importDatabase 
 } from '../services/mockBackend';
 import { useLanguage } from '../contexts/LanguageContext';
+import toast from 'react-hot-toast';
 
 interface AdminProps {
   currentUser: User;
@@ -14,7 +15,7 @@ const USERS_PER_PAGE = 10;
 const LINKS_PER_PAGE = 20;
 
 const Admin: React.FC<AdminProps> = ({ currentUser }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [links, setLinks] = useState<ShortLink[]>([]);
   const [activeTab, setActiveTab] = useState<'users' | 'links' | 'database'>('users');
@@ -40,6 +41,40 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
 
   // Database Import
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const confirmAction = (message: string, action: () => void) => {
+    toast((tToast) => (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {message}
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => toast.dismiss(tToast.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            {language === 'vi' ? 'Hủy' : 'Cancel'}
+          </button>
+          <button
+            onClick={() => {
+              action();
+              toast.dismiss(tToast.id);
+            }}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+          >
+            {language === 'vi' ? 'Xác nhận' : 'Confirm'}
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: document.documentElement.classList.contains('dark') ? '#374151' : '#fff',
+        color: document.documentElement.classList.contains('dark') ? '#fff' : '#111827',
+      }
+    });
+  };
 
   const isOwner = currentUser.role === UserRole.OWNER;
   const isAdmin = currentUser.role === UserRole.ADMIN;
@@ -80,13 +115,13 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target?.result as string);
-        if (window.confirm("CẢNH BÁO: Dữ liệu hiện tại sẽ bị ghi đè. Bạn có chắc chắn?")) {
+        confirmAction("CẢNH BÁO: Dữ liệu hiện tại sẽ bị ghi đè. Bạn có chắc chắn?", () => {
           importDatabase(json);
-          alert(t('admin.db.import.success'));
+          toast.success(t('admin.db.import.success'));
           window.location.reload();
-        }
+        });
       } catch (error) {
-        alert(t('admin.db.import.error'));
+        toast.error(t('admin.db.import.error'));
       }
     };
     reader.readAsText(file);
@@ -100,12 +135,12 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
       e.preventDefault();
       try {
           await adminCreateUser(newUserForm.email, newUserForm.password, newUserForm.name, newUserForm.role);
-          alert(`Đã tạo người dùng ${newUserForm.name} thành công!`);
+          toast.success(`Đã tạo người dùng ${newUserForm.name} thành công!`);
           setShowCreateUser(false);
           setNewUserForm({ name: '', email: '', password: '', role: UserRole.USER });
           refreshData();
       } catch (error: any) {
-          alert(error.message);
+          toast.error(error.message);
       }
   };
 
@@ -138,36 +173,37 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
   };
 
   const saveEditingUser = (userId: string) => {
-      if (!window.confirm(t('admin.confirm.save_user'))) return;
-      try {
-          updateFullUser(userId, {
-              name: editUserForm.name,
-              email: editUserForm.email,
-              role: editUserForm.role,
-              password: editUserForm.password // Only processed if not empty and isOwner in backend
-          });
-          if (isOwner) alert(t('common.success'));
-          setEditingUserId(null);
-          refreshData();
-      } catch (e: any) {
-          alert(e.message);
-      }
+      confirmAction(t('admin.confirm.save_user'), () => {
+          try {
+              updateFullUser(userId, {
+                  name: editUserForm.name,
+                  email: editUserForm.email,
+                  role: editUserForm.role,
+                  password: editUserForm.password // Only processed if not empty and isOwner in backend
+              });
+              if (isOwner) toast.success(t('common.success'));
+              setEditingUserId(null);
+              refreshData();
+          } catch (e: any) {
+              toast.error(e.message);
+          }
+      });
   };
 
   const handleDeleteUser = (targetUser: User) => {
-    if (window.confirm(t('admin.confirm.delete_user'))) {
+    confirmAction(t('admin.confirm.delete_user'), () => {
       deleteUser(targetUser.id);
-      if (isOwner) alert(t('common.success'));
+      if (isOwner) toast.success(t('common.success'));
       refreshData();
-    }
+    });
   };
 
   // --- Link Logic ---
   const handleDeleteLink = (id: string) => {
-    if (window.confirm(t('admin.confirm.delete_link'))) {
+    confirmAction(t('admin.confirm.delete_link'), () => {
       deleteLink(id);
       refreshData();
-    }
+    });
   };
 
   const handleSimulateVisit = (slug: string) => {
@@ -186,15 +222,15 @@ const Admin: React.FC<AdminProps> = ({ currentUser }) => {
   };
 
   const saveEditingLink = (linkId: string) => {
-    if (!window.confirm(t('admin.confirm.save_user'))) return; // Reusing save text
-
-    try {
-        updateLink(linkId, editLinkForm.slug, editLinkForm.originalUrl);
-        setEditingLinkId(null);
-        refreshData();
-    } catch (error: any) {
-        alert(error.message);
-    }
+    confirmAction(t('admin.confirm.save_user'), () => {
+        try {
+            updateLink(linkId, editLinkForm.slug, editLinkForm.originalUrl);
+            setEditingLinkId(null);
+            refreshData();
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    });
   };
 
   // --- Pagination & Filtering Helpers ---

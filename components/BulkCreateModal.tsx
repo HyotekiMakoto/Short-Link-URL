@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { bulkCreateShortLinks } from '../services/mockBackend';
+import { bulkCreateShortLinks, checkUrlSafety } from '../services/mockBackend';
 import { useLanguage } from '../contexts/LanguageContext';
+import toast from 'react-hot-toast';
 
 interface BulkCreateModalProps {
   userId: string;
@@ -49,7 +50,7 @@ const BulkCreateModal: React.FC<BulkCreateModalProps> = ({ userId, onSuccess, on
 
       if (items.length === 0) {
          setLoading(false);
-         alert("File trống hoặc không đúng định dạng.");
+         toast.error("File trống hoặc không đúng định dạng.");
          return;
       }
 

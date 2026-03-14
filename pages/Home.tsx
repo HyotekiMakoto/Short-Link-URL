@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { suggestSlugs } from '../services/geminiService';
-import { createShortLink } from '../services/mockBackend';
+import { createShortLink, checkUrlSafety } from '../services/mockBackend';
 import { User } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import toast from 'react-hot-toast';
 
 interface HomeProps {
   user: User | null;
@@ -52,6 +53,44 @@ const Home: React.FC<HomeProps> = ({ user }) => {
     }
   };
 
+  const showConfirmToast = (message: string, type: 'replace' | 'create') => {
+    toast((tToast) => (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {message}
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => toast.dismiss(tToast.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            {t('common.cancel') || 'Cancel'}
+          </button>
+          <button
+            onClick={() => {
+              toast.dismiss(tToast.id);
+              if (type === 'replace') {
+                showConfirmToast(t('home.guest.confirm.create'), 'create');
+              } else if (type === 'create') {
+                executeCreate();
+              }
+            }}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+          >
+            {t('common.confirm') || 'Confirm'}
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: document.documentElement.classList.contains('dark') ? '#374151' : '#fff',
+        color: document.documentElement.classList.contains('dark') ? '#fff' : '#111827',
+      }
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
@@ -60,22 +99,31 @@ const Home: React.FC<HomeProps> = ({ user }) => {
     if (!user) {
       const existingGuestLink = localStorage.getItem('guest_link_id');
       if (existingGuestLink) {
-        if (!window.confirm("Bạn đang có một link rút gọn khách (chưa đăng nhập). Bạn chỉ được phép tồn tại 1 link đồng thời. Bạn có muốn xóa link cũ để tạo link mới không?")) {
-          return;
-        }
-        // If they agree, we overwrite the local ID. The old one in DB will eventually be cleaned or ignored.
-      }
-
-      if (!window.confirm("CẢNH BÁO: Vì bạn chưa đăng nhập, link này sẽ chỉ tồn tại trong vòng 24 giờ và bạn chỉ được tạo 1 link duy nhất. Bạn có muốn tiếp tục?")) {
+        showConfirmToast(t('home.guest.confirm.replace'), 'replace');
         return;
       }
+
+      showConfirmToast(t('home.guest.confirm.create'), 'create');
+      return;
     }
 
+    executeCreate();
+  };
+
+  const executeCreate = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
+      const safety = await checkUrlSafety(url);
+      if (!safety.isSafe) {
+        toast.error(safety.reason || 'Link không an toàn');
+        setError(safety.reason || 'Link không an toàn');
+        setLoading(false);
+        return;
+      }
+
       await handleCreateLink();
     } catch (err: any) {
       setError(err.message || "Đã xảy ra lỗi.");

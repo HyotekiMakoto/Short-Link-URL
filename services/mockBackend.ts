@@ -220,6 +220,58 @@ export const deleteUser = (userId: string) => {
   localStorage.setItem(LINKS_KEY, JSON.stringify(links));
 };
 
+// --- Safe Browsing Service ---
+export const checkUrlSafety = async (url: string): Promise<{ isSafe: boolean; reason?: string }> => {
+  const apiKey = import.meta.env.VITE_GOOGLE_SAFE_BROWSING_API_KEY;
+  if (!apiKey) {
+    console.warn('Google Safe Browsing API key is missing. Skipping safety check.');
+    return { isSafe: true };
+  }
+
+  try {
+    const response = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client: {
+          clientId: "rlink-url-shortener",
+          clientVersion: "1.0.0"
+        },
+        threatInfo: {
+          threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
+          platformTypes: ["ANY_PLATFORM"],
+          threatEntryTypes: ["URL"],
+          threatEntries: [
+            { url: url }
+          ]
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to check URL safety:', await response.text());
+      return { isSafe: true }; // Fallback to safe if API fails
+    }
+
+    const data = await response.json();
+    
+    if (data.matches && data.matches.length > 0) {
+      const threatTypes = data.matches.map((match: any) => match.threatType).join(', ');
+      return { 
+        isSafe: false, 
+        reason: `Link không an toàn. Phát hiện: ${threatTypes}` 
+      };
+    }
+
+    return { isSafe: true };
+  } catch (error) {
+    console.error('Error checking URL safety:', error);
+    return { isSafe: true };
+  }
+};
+
 // --- Link Services (Link DB) ---
 
 export const getAllLinks = (): ShortLink[] => {
@@ -291,6 +343,13 @@ export const bulkCreateShortLinks = async (
   for (const item of items) {
     try {
       if (!item.url) continue;
+      
+      const safety = await checkUrlSafety(item.url);
+      if (!safety.isSafe) {
+        errors.push(`Lỗi dòng URL "${item.url}": ${safety.reason || 'Link không an toàn'}`);
+        continue;
+      }
+
       // Generate slug if missing
       const slug = item.slug || Math.random().toString(36).substring(2, 8);
       await createShortLink(item.url, slug, creatorId);
@@ -309,6 +368,15 @@ export const updateLinkExpiry = (linkId: string, expiresAt: string | null) => {
   const index = links.findIndex(l => l.id === linkId);
   if (index !== -1) {
     links[index].expiresAt = expiresAt;
+    localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+  }
+}
+
+export const updateLinkPassword = (linkId: string, password: string | null) => {
+  const links = getAllLinks();
+  const index = links.findIndex(l => l.id === linkId);
+  if (index !== -1) {
+    links[index].password = password;
     localStorage.setItem(LINKS_KEY, JSON.stringify(links));
   }
 }

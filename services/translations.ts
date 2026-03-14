@@ -14,6 +14,7 @@ export const translations = {
     "common.close": "Đóng",
     "common.visit": "Truy cập",
     "common.understand": "Đã hiểu",
+    "common.confirm": "Xác nhận",
 
     // Navbar
     "nav.home": "Trang chủ",
@@ -190,6 +191,7 @@ export const translations = {
     "common.close": "Close",
     "common.visit": "Visit",
     "common.understand": "Got it",
+    "common.confirm": "Confirm",
 
     // Navbar
     "nav.home": "Home",

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { User, ShortLink, DailyStat } from '../types';
-import { getLinksByUser, deleteLink, incrementClick, updateLinkExpiry, getLinkById } from '../services/mockBackend';
+import { getLinksByUser, deleteLink, incrementClick, updateLinkExpiry, getLinkById, updateLinkPassword } from '../services/mockBackend';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Treemap } from 'recharts';
 import { Link } from 'react-router-dom';
 import QRCodeModal from '../components/QRCodeModal';
 import BulkCreateModal from '../components/BulkCreateModal';
 import BulkInfoModal from '../components/BulkInfoModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import toast from 'react-hot-toast';
 
 interface DashboardProps {
   user: User | null;
@@ -20,6 +21,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
   const [newExpiryDate, setNewExpiryDate] = useState('');
+  const [editingPassword, setEditingPassword] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   
   // Modals state
   const [showQRModal, setShowQRModal] = useState<ShortLink | null>(null);
@@ -64,19 +67,50 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   };
 
   const handleDelete = (id: string) => {
+    const message = isGuest ? t('dash.confirm.delete_guest') : t('dash.confirm.delete_user');
+    toast((tToast) => (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {message}
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => toast.dismiss(tToast.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            {t('common.cancel') || 'Cancel'}
+          </button>
+          <button
+            onClick={() => {
+              confirmDelete(id);
+              toast.dismiss(tToast.id);
+            }}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+          >
+            {t('common.confirm') || 'Confirm'}
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: document.documentElement.classList.contains('dark') ? '#374151' : '#fff',
+        color: document.documentElement.classList.contains('dark') ? '#fff' : '#111827',
+      }
+    });
+  };
+
+  const confirmDelete = (id: string) => {
     if (isGuest) {
-      if (window.confirm(t('dash.confirm.delete_guest'))) {
-        deleteLink(id);
-        localStorage.removeItem('guest_link_id');
-        loadLinks();
-        setSelectedLink(null);
-      }
+      deleteLink(id);
+      localStorage.removeItem('guest_link_id');
+      loadLinks();
+      setSelectedLink(null);
     } else {
-      if (window.confirm(t('dash.confirm.delete_user'))) {
-        deleteLink(id);
-        loadLinks();
-        if (selectedLink?.id === id) setSelectedLink(null);
-      }
+      deleteLink(id);
+      loadLinks();
+      if (selectedLink?.id === id) setSelectedLink(null);
     }
   };
 
@@ -97,6 +131,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
     setEditingExpiry(null);
     loadLinks();
+  };
+
+  const handleUpdatePassword = (linkId: string, passwordToSet?: string) => {
+    const finalPassword = passwordToSet !== undefined ? passwordToSet : newPassword;
+    const message = finalPassword ? 'Bạn có chắc chắn muốn đặt mật khẩu cho link này?' : 'Bạn có chắc chắn muốn xoá mật khẩu của link này?';
+    toast((tToast) => (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {message}
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => toast.dismiss(tToast.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            {t('common.cancel') || 'Hủy'}
+          </button>
+          <button
+            onClick={() => {
+              updateLinkPassword(linkId, finalPassword || null);
+              setEditingPassword(null);
+              loadLinks();
+              toast.dismiss(tToast.id);
+              toast.success(finalPassword ? 'Đã đặt mật khẩu thành công' : 'Đã xoá mật khẩu thành công');
+            }}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+          >
+            {t('common.confirm') || 'Xác nhận'}
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: document.documentElement.classList.contains('dark') ? '#374151' : '#fff',
+        color: document.documentElement.classList.contains('dark') ? '#fff' : '#111827',
+      }
+    });
   };
 
   const filteredLinks = links.filter(link => 
@@ -360,6 +433,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('dash.table.short_link')}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('dash.table.original_url')}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('dash.table.status')}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Mật khẩu</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('dash.table.clicks')}</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('common.actions')}</th>
               </tr>
@@ -416,6 +490,53 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={e => e.stopPropagation()}>
+                    {editingPassword === link.id ? (
+                      <div className="flex items-center gap-1">
+                        <input 
+                          type="text" 
+                          placeholder="Nhập mật khẩu"
+                          className="text-xs border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-24"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                        <button onClick={() => handleUpdatePassword(link.id)} className="text-green-600 dark:text-green-400 text-xs font-bold">{t('common.save')}</button>
+                        <button onClick={() => setEditingPassword(null)} className="text-gray-500 dark:text-gray-400 text-xs">{t('common.cancel')}</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {link.password ? link.password : 'Không có'}
+                        </span>
+                        <button 
+                          onClick={() => {
+                            setEditingPassword(link.id);
+                            setNewPassword(link.password || '');
+                          }}
+                          className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                          title="Chỉnh sửa mật khẩu"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        {link.password && (
+                          <button 
+                            onClick={() => {
+                              setNewPassword('');
+                              handleUpdatePassword(link.id, '');
+                            }}
+                            className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            title="Xoá mật khẩu"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>

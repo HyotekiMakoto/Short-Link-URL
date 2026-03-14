@@ -6,13 +6,16 @@ import { useLanguage } from '../contexts/LanguageContext';
 const RedirectHandler: React.FC = () => {
   const { t } = useLanguage();
   const { slug } = useParams<{ slug: string }>();
-  const [status, setStatus] = useState<'checking' | 'waiting' | 'expired' | 'not-found'>('checking');
+  const [status, setStatus] = useState<'checking' | 'waiting' | 'expired' | 'not-found' | 'password-required'>('checking');
   const [targetUrl, setTargetUrl] = useState('');
   const [countdown, setCountdown] = useState(5);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [linkId, setLinkId] = useState<string | null>(null);
+  const [linkPassword, setLinkPassword] = useState<string | null>(null);
+  const [inputPassword, setInputPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     if (!slug) {
@@ -38,7 +41,13 @@ const RedirectHandler: React.FC = () => {
 
       setTargetUrl(link.originalUrl);
       setLinkId(link.id);
-      setStatus('waiting');
+      
+      if (link.password) {
+        setLinkPassword(link.password);
+        setStatus('password-required');
+      } else {
+        setStatus('waiting');
+      }
     };
 
     checkLink();
@@ -53,6 +62,16 @@ const RedirectHandler: React.FC = () => {
     }
     return () => clearTimeout(timer);
   }, [status, countdown]);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputPassword === linkPassword) {
+      setStatus('waiting');
+      setPasswordError('');
+    } else {
+      setPasswordError('Mật khẩu không chính xác');
+    }
+  };
 
   const handleRedirect = () => {
     if (linkId) {
@@ -87,6 +106,45 @@ const RedirectHandler: React.FC = () => {
         <p className="text-gray-600 dark:text-gray-300 font-medium">
             {t('redirect.checking')}
         </p>
+      </div>
+    );
+  }
+
+  if (status === 'password-required') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 transition-colors duration-200">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 text-center border border-gray-100 dark:border-gray-700">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 mb-6">
+            <svg className="h-8 w-8 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Link được bảo vệ bằng mật khẩu</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Vui lòng nhập mật khẩu để tiếp tục
+          </p>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                value={inputPassword}
+                onChange={(e) => setInputPassword(e.target.value)}
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-white dark:bg-gray-700"
+                placeholder="Mật khẩu"
+                required
+              />
+              {passwordError && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 text-left">{passwordError}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+            >
+              Xác nhận
+            </button>
+          </form>
+        </div>
       </div>
     );
   }

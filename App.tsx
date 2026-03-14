@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { User, UserRole } from './types';
 import { getCurrentUser } from './services/mockBackend';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext'; // Import Provider
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -74,6 +75,7 @@ const App: React.FC = () => {
 
   return (
     <LanguageProvider>
+      <Toaster position="top-right" />
       <Router>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
           <Navbar user={user} setUser={setUser} />
