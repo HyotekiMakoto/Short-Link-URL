@@ -353,57 +353,61 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-72 w-full">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">{t('dash.chart.axis')}</h3>
+            <div className="h-72 w-full flex flex-col">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center flex-shrink-0">{t('dash.chart.axis')}</h3>
               {isGraphReady ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={getChartData(selectedLink)}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#4B5563" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
-                    <YAxis tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
-                      itemStyle={{ color: '#E5E7EB' }}
-                      labelStyle={{ color: '#9CA3AF' }}
-                    />
-                    <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} activeDot={{ r: 8 }} name="Clicks" />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="flex-1 min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={getChartData(selectedLink)}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#4B5563" opacity={0.3} />
+                      <XAxis dataKey="date" tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
+                      <YAxis tick={{fontSize: 12, fill: '#9CA3AF'}} stroke="#6B7280" />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
+                        itemStyle={{ color: '#E5E7EB' }}
+                        labelStyle={{ color: '#9CA3AF' }}
+                      />
+                      <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} activeDot={{ r: 8 }} name="Clicks" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               ) : (
-                 <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
+                 <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400 text-sm">
                     {t('dash.chart.loading')}
                  </div>
               )}
             </div>
 
-            <div className="h-72 w-full">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">{t('dash.chart.heatmap')}</h3>
+            <div className="h-72 w-full flex flex-col">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center flex-shrink-0">{t('dash.chart.heatmap')}</h3>
               {isGraphReady ? (
                 getCountryData(selectedLink).length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <Treemap
-                      data={getCountryData(selectedLink)}
-                      dataKey="size"
-                      aspectRatio={4 / 3}
-                      stroke="#fff"
-                      fill="#8884d8"
-                      content={<CustomizedContent colors={COLORS} />}
-                    >
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
-                        itemStyle={{ color: '#E5E7EB' }}
-                        labelStyle={{ color: '#9CA3AF' }}
-                        formatter={(value: number, name: string) => [value, name]}
-                      />
-                    </Treemap>
-                  </ResponsiveContainer>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <Treemap
+                        data={getCountryData(selectedLink)}
+                        dataKey="size"
+                        aspectRatio={4 / 3}
+                        stroke="#fff"
+                        fill="#8884d8"
+                        content={<CustomizedContent colors={COLORS} />}
+                      >
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', color: '#F3F4F6' }}
+                          itemStyle={{ color: '#E5E7EB' }}
+                          labelStyle={{ color: '#9CA3AF' }}
+                          formatter={(value: number, name: string) => [value, name]}
+                        />
+                      </Treemap>
+                    </ResponsiveContainer>
+                  </div>
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
+                  <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400 text-sm">
                     Chưa có dữ liệu quốc gia
                   </div>
                 )
               ) : (
-                 <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">
+                 <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400 text-sm">
                     {t('dash.chart.loading')}
                  </div>
               )}

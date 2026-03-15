@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { translations, Language } from '../services/translations';
 import { getLanguageSettings, setLanguage as saveLanguageService } from '../services/mockBackend';
 
@@ -25,11 +25,11 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     saveLanguageService(lang);
   };
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     const langData = translations[language];
     // @ts-ignore
     return langData[key] || key;
-  };
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
